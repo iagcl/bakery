@@ -1,0 +1,64 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Burger stack that creates IAM roles that can be federated with Bakery account"
+
+Parameters:
+
+  TeamName:
+    Description: "Team name will be prefixed to all IAM resources"
+    Type: String
+    Default: IAMBakery
+
+  BakeryAccount:
+    Description: "Bakery AWS account that provides federation for Burger accounts"
+    Type: String
+    Default: 111111111111
+
+  Environment:
+    Description: "Please enter NonProd, Prod, or Mgmt"
+    Type: String
+    AllowedValues:
+    - NonProd
+    - Prod
+    - Mgmt
+
+Resources:
+
+  AdminsRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            AWS: !Sub "arn:aws:iam::${BakeryAccount}:root"
+          Action: sts:AssumeRole
+      RoleName: !Sub Burger${TeamName}${Environment}Admins
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/AdministratorAccess
+
+  PowerUserRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            AWS: !Sub "arn:aws:iam::${BakeryAccount}:root"
+          Action: sts:AssumeRole
+      RoleName: !Sub Burger${TeamName}${Environment}PowerUser
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/PowerUserAccess
+
+  ReadOnlyRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            AWS: !Sub "arn:aws:iam::${BakeryAccount}:root"
+          Action: sts:AssumeRole
+      RoleName: !Sub Burger${TeamName}${Environment}ReadOnly
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/ReadOnlyAccess

@@ -1,0 +1,60 @@
+---
+- hosts: localhost
+  connection: local
+  vars:
+    bakery_cf_bucket: bakery-cloudformation-deployment
+    env:              Prod
+    application:      Bakery
+    server_name:      Bakery
+    launched_by:      iam_user
+    prefix: ""
+  tasks:
+
+    - name: "Upload CloudFormation templates to s3 bucket"
+      s3:
+        bucket: "{{ bakery_cf_bucket }}"
+        object: "/{{ item }}"
+        src: "{{ playbook_dir }}/bakery/{{ item }}"
+        mode: put
+        region: "{{ REGION }}"
+      register: s3
+      until: s3|success
+      retries: 5
+      delay: 10
+      with_items:
+          - bakery_env.yml
+          - bakery_account.yml
+
+    - name: "Run main CloudFormation template"
+      cloudformation:
+        stack_name: "{{ prefix }}BakeryAccount"
+        state: present
+        template: "{{ playbook_dir }}/bakery/bakery_stack.yml"
+        tags:
+          Environment: "{{ env }}"
+          Application: "{{ application }}"
+          Server Name: "{{ server_name }}"
+          Launched By: "{{ launched_by }}"
+        template_parameters:
+          CloudFormationS3Bucket: "{{ bakery_cf_bucket }}"
+        region: "{{ REGION }}"
+
+    - name: "Get Cloudformation stack info"
+      cloudformation_facts:
+        stack_name: "{{ prefix }}Bakery"
+      register: stack
+
+    - name: "Get Ansible Facts for Cloudformation Stack"
+      set_fact:
+        output: "{{ stack.ansible_facts.cloudformation }}"
+
+    - name: "Get Cloudformation Stack Status"
+      set_fact:
+        stack_status:  "{{ output[item]['stack_description']['stack_status'] }}"
+      with_items: "{{ prefix }}Bakery"
+
+    - fail:
+        msg: "Build Failed. Stack status: {{ stack_status }}"
+      when:
+        - stack_status != "CREATE_COMPLETE"
+        - stack_status != "UPDATE_COMPLETE"

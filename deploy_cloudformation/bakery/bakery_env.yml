@@ -1,0 +1,90 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Bakery stack that creates IAM resources that support federation for Environment Burger accounts"
+
+Parameters:
+
+  TeamName:
+    Description: "Team name will be prefixed to all IAM resources"
+    Type: String
+    Default: IAMBakery
+
+  Environment:
+    Description: "Please enter NonProd, Prod, or Mgmt"
+    Type: String
+    AllowedValues:
+    - NonProd
+    - Prod
+    - Mgmt
+
+  AccessType:
+    Description: "Please enter Admin, PowerUser, or ReadOnly"
+    Type: String
+    AllowedValues:
+    - Admin
+    - PowerUser
+    - ReadOnly
+
+Mappings:
+
+  # NOTE: Every time we deploy a new burger account, make sure the assume role arn is set here
+
+  # NonProd gets access to:
+  # * nonprod Account 1 (222222222222)
+  # * nonprod Account 2 (333333333333)
+  NonProd:
+    Admin:
+      roles: >-
+        arn:aws:iam::222222222222:role/BurgerIAMBakeryNonProdAdmins,
+        arn:aws:iam::333333333333:role/BurgerIAMBakeryNonProdAdmins
+    PowerUser:
+      roles: >-
+        arn:aws:iam::222222222222:role/BurgerIAMBakeryNonProdPowerUser,
+        arn:aws:iam::333333333333:role/BurgerIAMBakeryNonProdPowerUser
+    ReadOnly:
+      roles: >-
+        arn:aws:iam::222222222222:role/BurgerIAMBakeryNonProdReadOnly,
+        arn:aws:iam::333333333333:role/BurgerIAMBakeryNonProdReadOnly
+
+  # Prod gets access to:
+  # * prod Account (444444444444)
+  Prod:
+    Admin:
+      roles: arn:aws:iam::444444444444:role/BurgerIAMBakeryProdAdmins
+    PowerUser:
+      roles: arn:aws:iam::444444444444:role/BurgerIAMBakeryProdPowerUser
+    ReadOnly:
+      roles: arn:aws:iam::444444444444:role/BurgerIAMBakeryProdReadOnly
+        
+  # Management account (mgmt) gets access to:
+  # * mgmt Account (555555555555)
+  Mgmt:
+    Admin:
+      roles: arn:aws:iam::555555555555:role/BurgerIAMBakeryMgmtAdmins
+    PowerUser:
+      roles: arn:aws:iam::555555555555:role/BurgerIAMBakeryMgmtPowerUser
+    ReadOnly:
+      roles: arn:aws:iam::555555555555:role/BurgerIAMBakeryMgmtReadOnly
+
+Resources:
+
+  AccessTypeGroup:
+    Type: "AWS::IAM::Group"
+    Properties:
+      GroupName: !Sub '${TeamName}${Environment}${AccessType}'
+
+  AccessTypeGroupPolicy:
+    Type: "AWS::IAM::ManagedPolicy"
+    DependsOn:
+    - AccessTypeGroup
+    Properties:
+      ManagedPolicyName: !Sub '${TeamName}${Environment}${AccessType}Group'
+      Description: !Sub "This policy will allow role ${AccessType}Group to assume role in burger accounts"
+      Groups:
+      - !Ref AccessTypeGroup
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+        - Effect: Allow
+          Action: sts:AssumeRole
+          Resource: !Split [", ",!FindInMap [!Ref Environment, !Ref AccessType, roles]]

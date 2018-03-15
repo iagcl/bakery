@@ -1,0 +1,81 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Bakery account stack that creates IAM resources that manages Bakery account"
+
+Parameters:
+
+  TeamName:
+    Description: "Team name will be prefixed to all IAM resources"
+    Type: String
+    Default: IAMBakery
+
+Resources:
+
+  BakeryAdminsGroup:
+    Type: "AWS::IAM::Group"
+    Properties:
+      GroupName: !Sub '${TeamName}AwsBakeryAdmin'
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AdministratorAccess
+
+  BakeryUsersGroup:
+    Type: "AWS::IAM::Group"
+    Properties:
+      GroupName: !Sub '${TeamName}AwsBakeryReadOnly'
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/IAMReadOnlyAccess"
+
+  # This policy will allow group members to manage their passwords and MFA devices
+  BakeryUsersPolicy:
+    Type: "AWS::IAM::ManagedPolicy"
+    DependsOn: [BakeryUsersGroup]
+    Properties:
+      Description: "This policy will allow group members to manage their passwords and MFA devices"
+      ManagedPolicyName: !Sub '${TeamName}AwsBakeryReadOnlyGroup'
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: "AllowAllUsersToListAccounts"
+            Effect: Allow
+            Action:
+              - iam:ListAccountAliases
+              - iam:ListUsers
+              - iam:GetAccountSummary
+            Resource: "*"
+          - Sid: "AllowIndividualUserToSeeAndManageOnlyTheirOwnAccountInformation"
+            Effect: Allow
+            Action:
+              - iam:ChangePassword
+              - iam:CreateAccessKey
+              - iam:CreateLoginProfile
+              - iam:DeleteAccessKey
+              - iam:DeleteLoginProfile
+              - iam:GetAccountPasswordPolicy
+              - iam:GetLoginProfile
+              - iam:ListAccessKeys
+              - iam:UpdateAccessKey
+            Resource:
+              - !Join [ ":", [ "arn:aws:iam:", !Ref "AWS::AccountId", "user/${aws:username}" ] ]
+          - Sid: "AllowIndividualUserToListOnlyTheirOwnMFA"
+            Effect: Allow
+            Action:
+              - iam:ListVirtualMFADevices
+              - iam:ListMFADevices
+            Resource:
+              - !Join [ ":", [ "arn:aws:iam:", !Ref "AWS::AccountId", "mfa/*" ] ]
+              - !Join [ ":", [ "arn:aws:iam:", !Ref "AWS::AccountId", "user/${aws:username}" ] ]
+          - Sid: "AllowIndividualUserToManageTheirOwnMFA"
+            Effect: Allow
+            Action:
+              - iam:CreateVirtualMFADevice
+              - iam:DeleteVirtualMFADevice
+              - iam:RequestSmsMfaRegistration
+              - iam:FinalizeSmsMfaRegistration
+              - iam:EnableMFADevice
+              - iam:ResyncMFADevice
+              - iam:DeactivateMFADevice
+            Resource:
+              - !Join [ ":", [ "arn:aws:iam:", !Ref "AWS::AccountId", "mfa/${aws:username}" ] ]
+              - !Join [ ":", [ "arn:aws:iam:", !Ref "AWS::AccountId", "user/${aws:username}" ] ]
+      Groups:
+        - !Ref BakeryUsersGroup
