@@ -58,6 +58,8 @@ You must deploy Burger CloudFormation Stack into Burger AWS Account which will a
 
 ***
 
+## Customizing Bakery
+
 ## Adding more Access Types
 
 By default the template supports three levels of access types i.e. 'Admin', 'PowerUser', and 'ReadOnly'. However, if you need to add more access type you need to update below three files.
