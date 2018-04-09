@@ -55,7 +55,7 @@
 
     - name: "Get Cloudformation stack info"
       cloudformation_facts:
-        stack_name: "{{ prefix }}Bakery"
+        stack_name: "{{ prefix }}BakeryAccount"
       register: stack
 
     - name: "Get Ansible Facts for Cloudformation Stack"
@@ -65,7 +65,7 @@
     - name: "Get Cloudformation Stack Status"
       set_fact:
         stack_status:  "{{ output[item]['stack_description']['stack_status'] }}"
-      with_items: "{{ prefix }}Bakery"
+      with_items: "{{ prefix }}BakeryAccount"
 
     - fail:
         msg: "Build Failed. Stack status: {{ stack_status }}"
