@@ -1,10 +1,10 @@
-Assume Role Script
+# Assume Role Script
 
-***
+## Run Bootstrap
 
-## Run bootstrap
+This will create the bash script for assuming roles in burger accounts. Based on your credentials, it will dynamically query what roles you can assume and creates the `assume.sh` bash script for day to day use.
 
-This will create the bash script for assuming roles in burger accounts. Based on your credentials, it will dynamically query what roles you can assume and creates the `assume.sh` bash script for day to day use. A soft link will be created in your `/usr/local/bin/assume` path so that you can just run the script as the command `assume` anywhere
+Ensure your Bakery AWS account's credentials are in the default section of `~/.aws/credentials`.
 
 ```bash
 $ make bootstrap-assume-script

@@ -14,28 +14,27 @@
 #
 ---
 AWSTemplateFormatVersion: "2010-09-09"
-Description: Bakery stack that creates IAM resources that support federation for Burger accounts
+Description: Burger stack that creates IAM roles that can be federated with Bakery account
 
 Parameters:
 
-  TeamName:
-    Description: Team name will be prefixed to all IAM resources
+  BakeryAccount:
+    Description: Bakery AWS account that provides federation for Burger accounts
+    Type: String
+    Default: {{bakery_account}}
+
+  AccountName:
+    Description: Please enter Burger Account Name, e.g. NonProd, Stg, Mgmt, etc
     Type: String
 
-  CloudFormationS3Bucket:
-    Description: The S3 bucket which stores the CloudFormation templates for the nested stacks
+  Environment:
+    Description: Please enter NonProd, Prod or Mgmt
     Type: String
+    AllowedValues:
+    - NonProd
+    - Prod
+    - Mgmt
 
 Resources:
 
-  BakeryAccount:
-    Type: "AWS::CloudFormation::Stack"
-    Properties:
-      TemplateURL: !Sub "https://s3.amazonaws.com/${CloudFormationS3Bucket}/bakery_account.yml"
-      Parameters:
-        TeamName: !Ref TeamName
-
-  BakeryEnvironment:
-    Type: "AWS::CloudFormation::Stack"
-    Properties:
-      TemplateURL: !Sub "https://s3.amazonaws.com/${CloudFormationS3Bucket}/bakery_env.yml"
+{{access_type_roles}}

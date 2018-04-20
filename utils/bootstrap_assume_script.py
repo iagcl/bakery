@@ -13,7 +13,7 @@
 # limitations under the License.
 #
 import boto3
-BAKERY_ENV_GROUPS = ['NonProd','Prod','Mgmt']
+BAKERY_ENV_GROUPS = ['NonProd', 'Prod', 'Mgmt']
 
 ASSUME_TEMP = """
 #!/bin/bash
@@ -45,7 +45,7 @@ get_roles(){{
 interactivly_pick_role(){{
   echo "Roles Available To Assume:"
     for i in "${{!roles[@]}}"; do
-      printf "%s\t%s\n" "$i" "${{roles[$i]}}"
+      printf "%s\t%s\\n" "$i" "${{roles[$i]}}"
     done
   echo Pick a role:
   read role_number
@@ -53,16 +53,13 @@ interactivly_pick_role(){{
 }}
 
 assume_role(){{
-  local temp_role=$(aws sts assume-role \
-                --role-arn ${{roles[$1]}} \
-                --role-session-name assumeRoleSession \
-                --profile default --no-verify-ssl)
+  local temp_role=$(aws sts assume-role --role-arn ${{roles[$1]}} --role-session-name assumeRoleSession --query Credentials.[AccessKeyId,SecretAccessKey,SessionToken] --output text)
 
   [ "$temp_role" ] || {{ echo "aws sts assume-role failed" ; return; }}
 
-  export AWS_ACCESS_KEY_ID=$(echo $temp_role | jq -r .Credentials.AccessKeyId)
-  export AWS_SECRET_ACCESS_KEY=$(echo $temp_role | jq -r .Credentials.SecretAccessKey)
-  export AWS_SESSION_TOKEN=$(echo $temp_role | jq -r .Credentials.SessionToken)
+  export AWS_ACCESS_KEY_ID=$(echo $temp_role | awk '{{print $1}}')
+  export AWS_SECRET_ACCESS_KEY=$(echo $temp_role | awk '{{print $2}}')
+  export AWS_SESSION_TOKEN=$(echo $temp_role | awk '{{print $3}}')
 
   env | grep -i AWS_
 }}
@@ -92,16 +89,15 @@ clean_up || {{ echo "clean_up failed" ; return; }}
 class AssumeRoleGenerator(object):
 
     def __init__(self):
-        self._client = boto3.client("iam", verify=False)
-        self._resource = boto3.resource('iam', verify=False)
+        self._client = boto3.client("iam")
+        self._resource = boto3.resource("iam")
 
     def generate_assume_role_script(self):
         """
         This method generates the bash script to assume role
         """
-        f = open('assume.sh','w')
-        f.write(self.generate_file(self.get_roles()))
-        f.close()
+        with open('assume.sh', 'w') as filer:
+            filer.write(self.generate_file(self.get_roles()))
 
     def generate_file(self, roles):
         return ASSUME_TEMP.format(" ".join(roles))
@@ -112,7 +108,7 @@ class AssumeRoleGenerator(object):
         return self.get_assume_roles(groups)
 
     def get_username(self):
-        return self._client.get_user().get('User',{}).get('UserName')
+        return self._client.get_user().get('User', {}).get('UserName')
 
     def get_groups(self, username):
         return self._resource.User(username).groups.all()
@@ -130,7 +126,7 @@ class AssumeRoleGenerator(object):
             PolicyArn=arn,
             VersionId=doco_version
         ) \
-        .get('PolicyVersion',{}) \
+        .get('PolicyVersion', {}) \
         .get('Document')
 
     def get_bakery_group(self, groups):
@@ -148,7 +144,7 @@ class AssumeRoleGenerator(object):
         ])
 
     def get_resources_from_statement(self, statements):
-        return self.flatten_list([ s.get('Resource') for s in statements ])
+        return self.flatten_list([s.get('Resource') for s in statements])
 
     def flatten_list(self, init_list):
         return [

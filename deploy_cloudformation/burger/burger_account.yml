@@ -14,22 +14,21 @@
 #
 ---
 AWSTemplateFormatVersion: "2010-09-09"
-Description: "Burger stack that creates IAM roles that can be federated with Bakery account"
+Description: Burger stack that creates IAM roles that can be federated with Bakery account
 
 Parameters:
 
-  TeamName:
-    Description: "Team name will be prefixed to all IAM resources"
-    Type: String
-    Default: IAMBakery
-
   BakeryAccount:
-    Description: "Bakery AWS account that provides federation for Burger accounts"
+    Description: Bakery AWS account that provides federation for Burger accounts
     Type: String
-    Default: 111111111111
+    Default: 900131022284
+
+  AccountName:
+    Description: Please enter Burger Account Name, e.g. NonProd, Stg, Mgmt, etc
+    Type: String
 
   Environment:
-    Description: "Please enter NonProd, Prod, or Mgmt"
+    Description: Please enter NonProd, Prod or Mgmt
     Type: String
     AllowedValues:
     - NonProd
@@ -38,8 +37,8 @@ Parameters:
 
 Resources:
 
-  AdminsRole:
-    Type: "AWS::IAM::Role"
+  RoleAdmin:
+    Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
         Statement:
@@ -47,12 +46,12 @@ Resources:
           Principal:
             AWS: !Sub "arn:aws:iam::${BakeryAccount}:root"
           Action: sts:AssumeRole
-      RoleName: !Sub Burger${TeamName}${Environment}Admins
+      RoleName: !Sub "${AccountName}-${Environment}-Admin"
       ManagedPolicyArns:
       - arn:aws:iam::aws:policy/AdministratorAccess
 
-  PowerUserRole:
-    Type: "AWS::IAM::Role"
+  RolePowerUser:
+    Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
         Statement:
@@ -60,12 +59,12 @@ Resources:
           Principal:
             AWS: !Sub "arn:aws:iam::${BakeryAccount}:root"
           Action: sts:AssumeRole
-      RoleName: !Sub Burger${TeamName}${Environment}PowerUser
+      RoleName: !Sub "${AccountName}-${Environment}-PowerUser"
       ManagedPolicyArns:
       - arn:aws:iam::aws:policy/PowerUserAccess
 
-  ReadOnlyRole:
-    Type: "AWS::IAM::Role"
+  RoleReadOnly:
+    Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
         Statement:
@@ -73,6 +72,8 @@ Resources:
           Principal:
             AWS: !Sub "arn:aws:iam::${BakeryAccount}:root"
           Action: sts:AssumeRole
-      RoleName: !Sub Burger${TeamName}${Environment}ReadOnly
+      RoleName: !Sub "${AccountName}-${Environment}-ReadOnly"
       ManagedPolicyArns:
       - arn:aws:iam::aws:policy/ReadOnlyAccess
+
+

@@ -21,7 +21,7 @@
     application: Bakery
     launched_by: iam_user
     prefix: ""
-    stack_name: "{{ prefix }}BakeryAccount"
+    stack_name: "{{ prefix }}BurgerAccount"
     config_file: "../configuration/config.yml"
 
   tasks:
@@ -29,34 +29,19 @@
       include_vars:
         file: "{{ config_file }}"
 
-    - name: "Upload CloudFormation templates to s3 bucket"
-      s3:
-        bucket: "{{ bakery_cf_bucket }}"
-        object: "/{{ item }}"
-        src: "{{ playbook_dir }}/bakery/{{ item }}"
-        mode: put
-        region: "{{ REGION }}"
-      register: s3
-      until: s3|success
-      retries: 5
-      delay: 10
-      with_items:
-          - bakery_env.yml
-          - bakery_account.yml
-
     - name: "Run main CloudFormation template"
       cloudformation:
         stack_name: "{{ stack_name }}"
         state: present
-        template: "{{ playbook_dir }}/bakery/bakery_stack.yml"
+        template: "{{ playbook_dir }}/burger/burger_account.yml"
         tags:
           Environment: "{{ env }}"
           Billing Code: "{{ BillingCode }}"
           Application: "{{ application }}"
           Launched By: "{{ launched_by }}"
         template_parameters:
-          TeamName: "{{ TeamName }}"
-          CloudFormationS3Bucket: "{{ bakery_cf_bucket }}"
+          AccountName: "{{ account_name }}"
+          Environment: "{{ aws_env }}"
         region: "{{ REGION }}"
 
     - name: "Get Cloudformation stack info"

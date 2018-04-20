@@ -14,91 +14,197 @@
 #
 ---
 AWSTemplateFormatVersion: "2010-09-09"
-Description: "Bakery stack that creates IAM resources that support federation for Environment Burger accounts"
-
-Parameters:
-
-  TeamName:
-    Description: "Team name will be prefixed to all IAM resources"
-    Type: String
-    Default: IAMBakery
-
-  Environment:
-    Description: "Please enter NonProd, Prod, or Mgmt"
-    Type: String
-    AllowedValues:
-    - NonProd
-    - Prod
-    - Mgmt
-
-  AccessType:
-    Description: "Please enter Admin, PowerUser, or ReadOnly"
-    Type: String
-    AllowedValues:
-    - Admin
-    - PowerUser
-    - ReadOnly
-
-Mappings:
-
-  # NOTE: Every time we deploy a new burger account, make sure the assume role arn is set here
-
-  # NonProd gets access to:
-  # * nonprod Account 1 (222222222222)
-  # * nonprod Account 2 (333333333333)
-  NonProd:
-    Admin:
-      roles: >-
-        arn:aws:iam::222222222222:role/BurgerIAMBakeryNonProdAdmins,
-        arn:aws:iam::333333333333:role/BurgerIAMBakeryNonProdAdmins
-    PowerUser:
-      roles: >-
-        arn:aws:iam::222222222222:role/BurgerIAMBakeryNonProdPowerUser,
-        arn:aws:iam::333333333333:role/BurgerIAMBakeryNonProdPowerUser
-    ReadOnly:
-      roles: >-
-        arn:aws:iam::222222222222:role/BurgerIAMBakeryNonProdReadOnly,
-        arn:aws:iam::333333333333:role/BurgerIAMBakeryNonProdReadOnly
-
-  # Prod gets access to:
-  # * prod Account (444444444444)
-  Prod:
-    Admin:
-      roles: arn:aws:iam::444444444444:role/BurgerIAMBakeryProdAdmins
-    PowerUser:
-      roles: arn:aws:iam::444444444444:role/BurgerIAMBakeryProdPowerUser
-    ReadOnly:
-      roles: arn:aws:iam::444444444444:role/BurgerIAMBakeryProdReadOnly
-        
-  # Management account (mgmt) gets access to:
-  # * mgmt Account (555555555555)
-  Mgmt:
-    Admin:
-      roles: arn:aws:iam::555555555555:role/BurgerIAMBakeryMgmtAdmins
-    PowerUser:
-      roles: arn:aws:iam::555555555555:role/BurgerIAMBakeryMgmtPowerUser
-    ReadOnly:
-      roles: arn:aws:iam::555555555555:role/BurgerIAMBakeryMgmtReadOnly
+Description: Bakery stack that creates IAM resources that support federation for Environment Burger accounts
 
 Resources:
 
-  AccessTypeGroup:
-    Type: "AWS::IAM::Group"
+  GroupNonProdAdmin:
+    Type: AWS::IAM::Group
     Properties:
-      GroupName: !Sub '${TeamName}${Environment}${AccessType}'
+      GroupName: TechAutoNonProdAdmin
 
-  AccessTypeGroupPolicy:
-    Type: "AWS::IAM::ManagedPolicy"
-    DependsOn:
-    - AccessTypeGroup
+  PolicyNonProdAdmin:
+    Type: AWS::IAM::ManagedPolicy
     Properties:
-      ManagedPolicyName: !Sub '${TeamName}${Environment}${AccessType}Group'
-      Description: !Sub "This policy will allow role ${AccessType}Group to assume role in burger accounts"
+      ManagedPolicyName: TechAutoNonProdAdmin
+      Description: This policy allows to assume a role
       Groups:
-      - !Ref AccessTypeGroup
+        - !Ref GroupNonProdAdmin
       PolicyDocument:
         Version: "2012-10-17"
         Statement:
-        - Effect: Allow
-          Action: sts:AssumeRole
-          Resource: !Split [", ",!FindInMap [!Ref Environment, !Ref AccessType, roles]]
+          - Effect: Allow
+            Action: sts:AssumeRole
+            Resource:
+              - arn:aws:iam::213618447103:role/NonProd-NonProd-Admin
+              - arn:aws:iam::874442481494:role/Stg1-NonProd-Admin
+              - arn:aws:iam::658476016886:role/Stg2-NonProd-Admin
+
+  GroupNonProdPowerUser:
+    Type: AWS::IAM::Group
+    Properties:
+      GroupName: TechAutoNonProdPowerUser
+
+  PolicyNonProdPowerUser:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: TechAutoNonProdPowerUser
+      Description: This policy allows to assume a role
+      Groups:
+        - !Ref GroupNonProdPowerUser
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: sts:AssumeRole
+            Resource:
+              - arn:aws:iam::213618447103:role/NonProd-NonProd-PowerUser
+              - arn:aws:iam::874442481494:role/Stg1-NonProd-PowerUser
+              - arn:aws:iam::658476016886:role/Stg2-NonProd-PowerUser
+
+  GroupNonProdReadOnly:
+    Type: AWS::IAM::Group
+    Properties:
+      GroupName: TechAutoNonProdReadOnly
+
+  PolicyNonProdReadOnly:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: TechAutoNonProdReadOnly
+      Description: This policy allows to assume a role
+      Groups:
+        - !Ref GroupNonProdReadOnly
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: sts:AssumeRole
+            Resource:
+              - arn:aws:iam::213618447103:role/NonProd-NonProd-ReadOnly
+              - arn:aws:iam::874442481494:role/Stg1-NonProd-ReadOnly
+              - arn:aws:iam::658476016886:role/Stg2-NonProd-ReadOnly
+
+  GroupProdAdmin:
+    Type: AWS::IAM::Group
+    Properties:
+      GroupName: TechAutoProdAdmin
+
+  PolicyProdAdmin:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: TechAutoProdAdmin
+      Description: This policy allows to assume a role
+      Groups:
+        - !Ref GroupProdAdmin
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: sts:AssumeRole
+            Resource:
+              - arn:aws:iam::084555493275:role/Watchmen-Prod-Admin
+              - arn:aws:iam::668091071758:role/Woodstock-Prod-Admin
+
+  GroupProdPowerUser:
+    Type: AWS::IAM::Group
+    Properties:
+      GroupName: TechAutoProdPowerUser
+
+  PolicyProdPowerUser:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: TechAutoProdPowerUser
+      Description: This policy allows to assume a role
+      Groups:
+        - !Ref GroupProdPowerUser
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: sts:AssumeRole
+            Resource:
+              - arn:aws:iam::084555493275:role/Watchmen-Prod-PowerUser
+              - arn:aws:iam::668091071758:role/Woodstock-Prod-PowerUser
+
+  GroupProdReadOnly:
+    Type: AWS::IAM::Group
+    Properties:
+      GroupName: TechAutoProdReadOnly
+
+  PolicyProdReadOnly:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: TechAutoProdReadOnly
+      Description: This policy allows to assume a role
+      Groups:
+        - !Ref GroupProdReadOnly
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: sts:AssumeRole
+            Resource:
+              - arn:aws:iam::084555493275:role/Watchmen-Prod-ReadOnly
+              - arn:aws:iam::668091071758:role/Woodstock-Prod-ReadOnly
+
+  GroupMgmtAdmin:
+    Type: AWS::IAM::Group
+    Properties:
+      GroupName: TechAutoMgmtAdmin
+
+  PolicyMgmtAdmin:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: TechAutoMgmtAdmin
+      Description: This policy allows to assume a role
+      Groups:
+        - !Ref GroupMgmtAdmin
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: sts:AssumeRole
+            Resource:
+              - arn:aws:iam::452161641512:role/Mgmt-Mgmt-Admin
+
+  GroupMgmtPowerUser:
+    Type: AWS::IAM::Group
+    Properties:
+      GroupName: TechAutoMgmtPowerUser
+
+  PolicyMgmtPowerUser:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: TechAutoMgmtPowerUser
+      Description: This policy allows to assume a role
+      Groups:
+        - !Ref GroupMgmtPowerUser
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: sts:AssumeRole
+            Resource:
+              - arn:aws:iam::452161641512:role/Mgmt-Mgmt-PowerUser
+
+  GroupMgmtReadOnly:
+    Type: AWS::IAM::Group
+    Properties:
+      GroupName: TechAutoMgmtReadOnly
+
+  PolicyMgmtReadOnly:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: TechAutoMgmtReadOnly
+      Description: This policy allows to assume a role
+      Groups:
+        - !Ref GroupMgmtReadOnly
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: sts:AssumeRole
+            Resource:
+              - arn:aws:iam::452161641512:role/Mgmt-Mgmt-ReadOnly
+
+
