@@ -1,9 +1,14 @@
+FROM centos:latest
 
-FROM ubuntu:latest
-RUN mkdir /data
-RUN apt-get update
-RUN apt install -y ansible python python-pip
+RUN yum -y install epel-release && \
+    yum clean all && \
+    yum -y install python-pip make
+
+RUN pip install --upgrade pip
+
 COPY docker/requirements.txt .
 RUN pip install -r requirements.txt
+
 WORKDIR /data
+
 CMD ["/bin/bash"]

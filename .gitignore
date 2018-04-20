@@ -1,0 +1,9 @@
+.DS_Store
+assume.sh
+*.zip
+*.retry
+*.pyc
+.vscode
+
+/deploy_cloudformation/bakery/*.yml
+/deploy_cloudformation/burger/*.yml

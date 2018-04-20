@@ -14,14 +14,13 @@
 #
 ---
 AWSTemplateFormatVersion: "2010-09-09"
-Description: "Bakery account stack that creates IAM resources that manages Bakery account"
+Description: Bakery account stack that creates IAM resources that manages Bakery account
 
 Parameters:
 
   TeamName:
-    Description: "Team name will be prefixed to all IAM resources"
+    Description: Team name will be prefixed to all IAM resources
     Type: String
-    Default: IAMBakery
 
 Resources:
 
@@ -37,15 +36,14 @@ Resources:
     Properties:
       GroupName: !Sub '${TeamName}AwsBakeryReadOnly'
       ManagedPolicyArns:
-        - "arn:aws:iam::aws:policy/IAMReadOnlyAccess"
+        - arn:aws:iam::aws:policy/IAMReadOnlyAccess
 
-  # This policy will allow group members to manage their passwords and MFA devices
   BakeryUsersPolicy:
     Type: "AWS::IAM::ManagedPolicy"
-    DependsOn: [BakeryUsersGroup]
+    DependsOn: BakeryUsersGroup
     Properties:
-      Description: "This policy will allow group members to manage their passwords and MFA devices"
-      ManagedPolicyName: !Sub '${TeamName}AwsBakeryReadOnlyGroup'
+      Description: This policy will allow group members to manage their passwords and MFA devices
+      ManagedPolicyName: !Sub '${TeamName}AwsBakeryReadOnly'
       PolicyDocument:
         Version: "2012-10-17"
         Statement:

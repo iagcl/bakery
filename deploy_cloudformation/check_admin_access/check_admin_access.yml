@@ -1,0 +1,132 @@
+# Copyright 2017 Insurance Australia Group Limited
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Description: AWS stack for Checking and notifying users with "Admin acess" (ProdAdmin and ProdPowerUser) to Prod accounts.
+
+Parameters:
+
+  Prefix:
+    Description: Environment prefix
+    Type: String
+    AllowedPattern: '[a-z0-9-_]*'
+    ConstraintDescription: "Must be lowercase. Hyphen and numbers allowed. No spaces."
+
+  CheckSum:
+    Description: Dynamically generated checksum value
+    Type: String
+
+  LambdaS3Bucket:
+    Description: The S3 bucket which stores the lambda function python file
+    Type: String
+
+  SlackChannel:
+    Description: Slack channel name to send notifications
+    Type: String
+
+  SlackChannelHookUrl:
+    Description: Slack Channel Web Hook Url
+    Type: String
+
+  AdminGroups:
+    Description: List of Admin groups to check
+    Type: String
+
+  RetentionInDays: # Using default
+    Description: The number of days log events are kept in CloudWatch Logs
+    Type: Number
+    ConstraintDescription: Must be a valid retention in days Value
+    Default: 30
+
+Resources:
+
+  CheckAdminAccessRole: # Role which Lambda will use when executing lambda function triggered by Cloudwatch
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${Prefix}Bakery-CheckAdminAccess"
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/IAMReadOnlyAccess
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+
+  LoggingPolicy: # Logging policy for CheckAdminAccessRole
+    Type: AWS::IAM::ManagedPolicy
+    DependsOn: CheckAdminAccessRole
+    Properties:
+      ManagedPolicyName: !Sub "${Prefix}CheckAdminAccessLogs"
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - logs:CreateLogGroup
+              - logs:CreateLogStream
+              - logs:PutLogEvents
+            Resource: arn:aws:logs:*:*:*
+      Roles:
+        - !Sub "${Prefix}Bakery-CheckAdminAccess"
+
+  CheckAdminAccess: # Lambda function send notifications to Slack
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub "${Prefix}CheckAdminAccess"
+      Description: "Python function to send admin users info to Slack"
+      Handler: check_admin_access.lambda_handler
+      Role: !GetAtt CheckAdminAccessRole.Arn
+      Runtime: python2.7
+      MemorySize: 512
+      Timeout: 300
+      Environment:
+        Variables:
+          slackChannel: !Ref SlackChannel
+          slackChannelHookUrl: !Ref SlackChannelHookUrl
+          adminGroups: !Ref AdminGroups
+      Code:
+        S3Bucket: !Ref LambdaS3Bucket
+        S3Key: !Sub "check_admin_access.${CheckSum}.zip"
+
+  LogGroupCheckAdminAccess: # Log group for Lambda function
+    Type: "AWS::Logs::LogGroup"
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${Prefix}CheckAdminAccess"
+      RetentionInDays: !Ref RetentionInDays
+
+  CheckAdminAccessCloudWatchEvent: # Cloudwatch event scheduled to run 9am AEST (10pm GMT)
+    Type: AWS::Events::Rule
+    DependsOn: CheckAdminAccess
+    Properties:
+      Name: !Sub "${Prefix}CheckAdminAccess"
+      Description: Triggers the CheckAdminAccess lambda function
+      ScheduleExpression: "cron(0 22 * * ? *)"
+      State: ENABLED
+      Targets:
+      - Id: "Target1"
+        Arn: !GetAtt CheckAdminAccess.Arn
+
+  CheckAdminAccessPermission:
+    Type: AWS::Lambda::Permission
+    DependsOn: CheckAdminAccess
+    Properties:
+      FunctionName: !Sub "${Prefix}CheckAdminAccess"
+      Action: "lambda:InvokeFunction"
+      Principal: "events.amazonaws.com"
+      SourceArn: !GetAtt CheckAdminAccessCloudWatchEvent.Arn

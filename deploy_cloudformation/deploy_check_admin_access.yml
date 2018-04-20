@@ -21,7 +21,7 @@
     application: Bakery
     launched_by: iam_user
     prefix: ""
-    stack_name: "{{ prefix }}BakeryAccount"
+    stack_name: "{{ prefix }}CheckAdminAccess"
     config_file: "../configuration/config.yml"
 
   tasks:
@@ -29,34 +29,51 @@
       include_vars:
         file: "{{ config_file }}"
 
-    - name: "Upload CloudFormation templates to s3 bucket"
+    # Generate new checksum on lambda function change
+    - stat:
+        path: "{{ playbook_dir }}/check_admin_access/check_admin_access.py"
+        get_md5: yes
+      register: output
+
+    # Get checksum value
+    - set_fact:
+        checksum: "{{ output.stat.md5 }}"
+
+    - name: "Create Lambda function zip file"
+      archive:
+        path: "{{ playbook_dir }}/check_admin_access/check_admin_access.py"
+        dest: "{{ playbook_dir }}/check_admin_access/check_admin_access.{{ checksum }}.zip"
+        format: zip
+
+    - name: "Upload Lambda function zip file to s3 bucket"
       s3:
         bucket: "{{ bakery_cf_bucket }}"
-        object: "/{{ item }}"
-        src: "{{ playbook_dir }}/bakery/{{ item }}"
+        object: "check_admin_access.{{ checksum }}.zip"
+        src: "{{ playbook_dir }}/check_admin_access/check_admin_access.{{ checksum }}.zip"
         mode: put
         region: "{{ REGION }}"
       register: s3
       until: s3|success
       retries: 5
       delay: 10
-      with_items:
-          - bakery_env.yml
-          - bakery_account.yml
 
     - name: "Run main CloudFormation template"
       cloudformation:
         stack_name: "{{ stack_name }}"
         state: present
-        template: "{{ playbook_dir }}/bakery/bakery_stack.yml"
+        template: "{{ playbook_dir }}/check_admin_access/check_admin_access.yml"
+        template_parameters:
+          Prefix: "{{ prefix }}"
+          CheckSum: "{{ checksum }}"
+          LambdaS3Bucket: "{{ bakery_cf_bucket }}"
+          SlackChannel: "{{ SlackChannel }}"
+          SlackChannelHookUrl: "{{ SlackChannelHookUrl }}"
+          AdminGroups: " {{ AdminGroups }}"
         tags:
           Environment: "{{ env }}"
           Billing Code: "{{ BillingCode }}"
           Application: "{{ application }}"
           Launched By: "{{ launched_by }}"
-        template_parameters:
-          TeamName: "{{ TeamName }}"
-          CloudFormationS3Bucket: "{{ bakery_cf_bucket }}"
         region: "{{ REGION }}"
 
     - name: "Get Cloudformation stack info"
